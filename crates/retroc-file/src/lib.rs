@@ -56,6 +56,7 @@ impl<'a, T, Err: From<ErrorKind>> FileRegistry<'a, T, Err> {
         }
     }
 }
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 #[non_exhaustive]
 pub enum ErrorKind {
