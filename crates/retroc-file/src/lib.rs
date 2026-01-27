@@ -51,7 +51,7 @@ impl<'a, T, Err: From<ErrorKind>> FileRegistry<'a, T, Err> {
             };
             let x;
             (meta, x) = match meta.split_once('\n') {
-                Some((a, b)) => (a, b),
+                Some((a, b)) => (b,a),
                 None => return Err(nom::Err::Error(Err::from(ErrorKind::ArchIncomplete))),
             };
             let Some(x) = self.parsers.get(x).cloned() else {
