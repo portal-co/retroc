@@ -6,3 +6,15 @@ resolver = "3"
 version = "0.1.0"
 description = "Retro AOT compiler core, used in moond and for enjoyment"
 license = "MPL-2.0"
+
+[workspace.dependencies]
+
+px-llvm-codegen-utils-core={version="^0.1.4",git="https://github.com/portal-co/llvm-codegen-utils.git"}
+px-llvm-codegen-utils-info={version="^0.1.4",git="https://github.com/portal-co/llvm-codegen-utils.git"}
+
+
+portal-pc-asm-common = {version = "0.1.1",git = "https://github.com/portal-co/asm-common.git"}
+portal-solutions-asm-x86-64 = {version = "0.1.0",git = "https://github.com/portal-co/asm-arch.git"}
+portal-solutions-asm-riscv64 = {version = "0.1.0",git = "https://github.com/portal-co/asm-arch.git"}
+portal-solutions-asm-jvm = {version = "0.1.0",git = "https://github.com/portal-co/asm-arch.git"}
+portal-solutions-asm-regalloc = { git = "https://github.com/portal-co/asm-arch", package = "portal-solutions-asm-regalloc" }
