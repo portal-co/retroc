@@ -10,6 +10,7 @@ pub trait FileParser<T,ParseErrType> {
         &self,
         bytes: &'a [u8],
         meta: &'b str,
+        registry: &FileRegistry<'_, T, ParseErrType>,
     ) -> Result<(&'a [u8], &'b str, T), nom::Err<ParseErrType>>;
 }
 pub struct FileRegistry<'a, T, Err> {
@@ -50,7 +51,7 @@ impl<'a, T, Err: From<ErrorKind>> FileRegistry<'a, T, Err> {
                 return Err(nom::Err::Error(Err::from(ErrorKind::NoParser)));
             };
             let t;
-            (bytes, meta, t) = x.from_bytes_and_meta(bytes, meta)?;
+            (bytes, meta, t) = x.from_bytes_and_meta(bytes, meta, self)?;
             all.push(t);
         }
     }
