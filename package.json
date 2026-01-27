@@ -1,0 +1,9 @@
+{
+"description": "Retro AOT compiler core, used in moond and for enjoyment",
+"devDependencies": {
+"zshy": "^0.7.0"
+},
+"name": "@portal-solutions/retroc",
+"type": "module",
+"workspaces": []
+}

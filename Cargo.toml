@@ -1,0 +1,8 @@
+[workspace]
+members = []
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+description = "Retro AOT compiler core, used in moond and for enjoyment"
+license = "MPL-2.0"
