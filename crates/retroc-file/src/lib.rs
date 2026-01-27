@@ -5,16 +5,15 @@ use core::fmt::Display;
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 use nom::error::ParseError;
 extern crate alloc;
-pub trait FileParser<T> {
-    type ParseErrType: From<ErrorKind>;
+pub trait FileParser<T,ParseErrType> {
     fn from_bytes_and_meta<'a, 'b>(
         &self,
         bytes: &'a [u8],
         meta: &'b str,
-    ) -> Result<(&'a [u8], &'b str, T), nom::Err<Self::ParseErrType>>;
+    ) -> Result<(&'a [u8], &'b str, T), nom::Err<ParseErrType>>;
 }
 pub struct FileRegistry<'a, T, Err> {
-    pub parsers: BTreeMap<String, &'a (dyn FileParser<T, ParseErrType = Err> + 'a)>,
+    pub parsers: BTreeMap<String, &'a (dyn FileParser<T, Err> + 'a)>,
 }
 impl<'a, T, Err> Default for FileRegistry<'a, T, Err> {
     fn default() -> Self {
@@ -27,7 +26,7 @@ impl<'a, T, Err: From<ErrorKind>> FileRegistry<'a, T, Err> {
     pub fn register_parser(
         &mut self,
         extension: String,
-        parser: &'a (dyn FileParser<T, ParseErrType = Err> + 'a),
+        parser: &'a (dyn FileParser<T, Err> + 'a),
     ) {
         self.parsers.insert(extension, parser);
     }
