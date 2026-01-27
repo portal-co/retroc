@@ -1,0 +1,9 @@
+[package]
+name = "retroc-file"
+edition = "2024"
+version.workspace = true
+description.workspace = true
+license.workspace = true
+
+[dependencies]
+nom = { workspace = true, features = ["alloc"] }

@@ -1,5 +1,5 @@
 [workspace]
-members = []
+members = ["crates/retroc-file"]
 resolver = "3"
 
 [workspace.package]
@@ -18,3 +18,5 @@ portal-solutions-asm-x86-64 = {version = "0.1.0",git = "https://github.com/porta
 portal-solutions-asm-riscv64 = {version = "0.1.0",git = "https://github.com/portal-co/asm-arch.git"}
 portal-solutions-asm-jvm = {version = "0.1.0",git = "https://github.com/portal-co/asm-arch.git"}
 portal-solutions-asm-regalloc = { git = "https://github.com/portal-co/asm-arch", package = "portal-solutions-asm-regalloc" }
+
+nom = {version="8",default-features = false}
