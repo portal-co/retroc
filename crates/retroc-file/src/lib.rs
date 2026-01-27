@@ -5,7 +5,14 @@ use core::fmt::Display;
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 use nom::error::ParseError;
 extern crate alloc;
-pub trait FileParser<T,ParseErrType> {
+pub trait ByteMetaParser<T, ParseErrType> {
+    fn from_bytes_and_meta<'a, 'b>(
+        &self,
+        bytes: &'a [u8],
+        meta: &'b str,
+    ) -> Result<(&'a [u8], &'b str, T), nom::Err<ParseErrType>>;
+}
+pub trait FileParser<T, ParseErrType> {
     fn from_bytes_and_meta<'a, 'b>(
         &self,
         bytes: &'a [u8],
