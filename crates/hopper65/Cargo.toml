@@ -1,0 +1,12 @@
+[package]
+name = "hopper65"
+edition = "2024"
+version.workspace = true
+description.workspace = true
+license.workspace = true
+
+[dependencies]
+rayoff.workspace = true
+
+[features]
+rayon=["rayoff/rayon"]
