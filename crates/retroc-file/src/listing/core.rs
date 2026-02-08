@@ -1,7 +1,3 @@
-#![no_std]
-
-extern crate alloc;
-
 use alloc::{string::String, vec::Vec};
 use core::fmt::{self, Display};
 
@@ -21,11 +17,33 @@ pub struct ListingConfig {
 }
 
 impl ListingConfig {
-    pub fn new_hex(addr_groups: usize, addr_group_width: usize, entry_groups: usize, entry_group_width: usize) -> Self {
-        Self { base: 16, addr_groups, addr_group_width, entry_groups, entry_group_width }
+    pub fn new_hex(
+        addr_groups: usize,
+        addr_group_width: usize,
+        entry_groups: usize,
+        entry_group_width: usize,
+    ) -> Self {
+        Self {
+            base: 16,
+            addr_groups,
+            addr_group_width,
+            entry_groups,
+            entry_group_width,
+        }
     }
-    pub fn new_octal(addr_groups: usize, addr_group_width: usize, entry_groups: usize, entry_group_width: usize) -> Self {
-        Self { base: 8, addr_groups, addr_group_width, entry_groups, entry_group_width }
+    pub fn new_octal(
+        addr_groups: usize,
+        addr_group_width: usize,
+        entry_groups: usize,
+        entry_group_width: usize,
+    ) -> Self {
+        Self {
+            base: 8,
+            addr_groups,
+            addr_group_width,
+            entry_groups,
+            entry_group_width,
+        }
     }
 
     fn group_bits(&self) -> usize {
@@ -54,7 +72,11 @@ impl Display for ListingEntry {
 }
 
 /// Helpers used by parsers/printers: parse a dotted group string into a numeric value.
-pub fn parse_grouped_number(s: &str, base: u8, expected_groups: Option<usize>) -> Result<u128, &'static str> {
+pub fn parse_grouped_number(
+    s: &str,
+    base: u8,
+    expected_groups: Option<usize>,
+) -> Result<u128, &'static str> {
     let parts: Vec<&str> = s.split('.').collect();
     if let Some(expected) = expected_groups {
         if parts.len() != expected {
@@ -63,7 +85,8 @@ pub fn parse_grouped_number(s: &str, base: u8, expected_groups: Option<usize>) -
     }
     let mut value: u128 = 0;
     for part in parts {
-        let part_val = u128::from_str_radix(part, base as u32).map_err(|_| "invalid group digits")?;
+        let part_val =
+            u128::from_str_radix(part, base as u32).map_err(|_| "invalid group digits")?;
         // shift previous by sufficient bits to append next group
         let bits = match base {
             16 => 4 * part.len(),
@@ -76,7 +99,12 @@ pub fn parse_grouped_number(s: &str, base: u8, expected_groups: Option<usize>) -
 }
 
 /// Format a numeric value into dotted groups with zero padding.
-pub fn format_grouped_number(mut value: u128, cfg: ListingConfig, groups: usize, group_width: usize) -> String {
+pub fn format_grouped_number(
+    mut value: u128,
+    cfg: ListingConfig,
+    groups: usize,
+    group_width: usize,
+) -> String {
     // We'll extract groups from least-significant to most.
     let base = cfg.base as u128;
     let mut parts: Vec<String> = Vec::new();
@@ -91,18 +119,33 @@ pub fn format_grouped_number(mut value: u128, cfg: ListingConfig, groups: usize,
             alloc::format!("{:0width$o}", part, width = group_width)
         };
         parts.push(s);
-        value >>= match cfg.base { 16 => 4 * group_width, 8 => 3 * group_width, _ => 4 * group_width };
+        value >>= match cfg.base {
+            16 => 4 * group_width,
+            8 => 3 * group_width,
+            _ => 4 * group_width,
+        };
     }
     parts.reverse();
-    parts.join('.')
+    parts.join(".")
 }
 
 /// Convert a grouped numeric value into bytes (big-endian) where each group contributes group_bits bits.
-pub fn grouped_value_to_bytes(mut value: u128, base: u8, group_width: usize, groups: usize) -> Vec<u8> {
+pub fn grouped_value_to_bytes(
+    mut value: u128,
+    base: u8,
+    group_width: usize,
+    groups: usize,
+) -> Vec<u8> {
     let mut out = Vec::new();
-    let group_bits = match base { 16 => 4 * group_width, 8 => 3 * group_width, _ => 4 * group_width };
+    let group_bits = match base {
+        16 => 4 * group_width,
+        8 => 3 * group_width,
+        _ => 4 * group_width,
+    };
     let mut total_bits = group_bits * groups;
-    if total_bits == 0 { return out; }
+    if total_bits == 0 {
+        return out;
+    }
     // round up to bytes
     let total_bytes = (total_bits + 7) / 8;
     // produce big-endian bytes
