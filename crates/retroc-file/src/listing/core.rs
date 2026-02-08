@@ -62,24 +62,24 @@ impl ListingConfig {
 }
 
 /// A nom-style parser for dotted groups into a numeric value.
-pub fn parse_dotted_groups<'a>(
+pub fn parse_dotted_groups<'a,Err: nom::error::ParseError<&'a str>>(
     i: &'a str,
     base: u8,
     expected_groups: usize,
-) -> IResult<&'a str, u128> {
+) -> IResult<&'a str, u128, Err> {
     let (i, groups) = if base == 16 {
         separated_list1(nom_char('.'), hex_digit1).parse(i)?
     } else if base == 8 {
         separated_list1(nom_char('.'), take_while1(|c: char| c >= '0' && c <= '7')).parse(i)?
     } else {
-        return Err(nom::Err::Error(nom::error::Error::new(
+        return Err(nom::Err::Error(Err::from_error_kind(
             i,
             nom::error::ErrorKind::Tag,
         )));
     };
 
     if groups.len() != expected_groups {
-        return Err(nom::Err::Error(nom::error::Error::new(
+        return Err(nom::Err::Error(Err::from_error_kind(
             i,
             nom::error::ErrorKind::Verify,
         )));
@@ -88,7 +88,7 @@ pub fn parse_dotted_groups<'a>(
     let mut value: u128 = 0;
     for part in groups {
         let part_val = u128::from_str_radix(part, base as u32).map_err(|_| {
-            nom::Err::Error(nom::error::Error::new(part, nom::error::ErrorKind::Digit))
+            nom::Err::Error(Err::from_error_kind(part, nom::error::ErrorKind::Digit))
         })?;
         let bits = match base {
             16 => 4 * part.len(),
