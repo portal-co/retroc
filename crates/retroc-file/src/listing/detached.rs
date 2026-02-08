@@ -1,12 +1,11 @@
 use crate::listing::core::{
     ListingConfig, ListingEntry, format_grouped_number, grouped_value_to_bytes,
-    parse_grouped_number,
+    parse_dotted_groups, write_grouped_number,
 };
 use alloc::{string::String, vec::Vec};
-use nom::character::complete::{char, hex_digit1};
+use core::fmt::Write;
 use nom::combinator::all_consuming;
-use nom::multi::separated_list1;
-use nom::{IResult, Parser};
+use nom::Parser;
 
 /// Parse a "detached" listing.
 ///
@@ -66,37 +65,7 @@ pub fn parse_detached_listing(
             }
 
             // Otherwise parse numeric address using `nom` for robustness.
-            // We'll accept hex digits for base 16, or fall back to `parse_grouped_number` for octal.
-            let parsed_addr = if cfg.base == 16 {
-                // parse dotted hex groups
-                fn parse_hex_groups(i: &str) -> IResult<&str, Vec<&str>> {
-                    separated_list1(char('.'), hex_digit1).parse(i)
-                }
-                match all_consuming(parse_hex_groups).parse(first) {
-                    Ok((_, groups)) => {
-                        if groups.len() != cfg.addr_groups {
-                            return Err("address group count mismatch");
-                        }
-                        // join groups with '.' and reuse parse_grouped_number for numeric conversion
-                        let joined = groups.join(".");
-                        Some(parse_grouped_number(
-                            &joined,
-                            cfg.base,
-                            Some(cfg.addr_groups),
-                        )?)
-                    }
-                    Err(_) => None,
-                }
-            } else {
-                // for octal use existing helper
-                Some(parse_grouped_number(
-                    first,
-                    cfg.base,
-                    Some(cfg.addr_groups),
-                )?)
-            };
-
-            if let Some(addr_val) = parsed_addr {
+            if let Ok((_, addr_val)) = all_consuming(|i| parse_dotted_groups(i, cfg.base, cfg.addr_groups)).parse(first) {
                 let offset = addr_val as usize;
                 let group_bits = match cfg.base {
                     16 => 4 * cfg.entry_group_width,
@@ -131,19 +100,28 @@ pub fn parse_detached_listing(
     Ok(out)
 }
 
-/// Print detached listing comments and return raw bytes file contents separately.
-pub fn print_detached_listing(entries: &[ListingEntry], cfg: ListingConfig) -> (String, Vec<u8>) {
-    let mut comments = String::new();
+/// Print detached listing comments into a writer and return raw bytes separately.
+pub fn write_detached_listing<W: Write>(
+    w: &mut W,
+    entries: &[ListingEntry],
+    cfg: ListingConfig,
+) -> (core::fmt::Result, Vec<u8>) {
     let mut raw: Vec<u8> = Vec::new();
+    let mut res = Ok(());
     for e in entries {
         if e.address != 0 {
-            let addr = format_grouped_number(
-                e.address as u128,
-                cfg,
-                cfg.addr_groups,
-                cfg.addr_group_width,
-            );
-            comments.push_str(&alloc::format!("{} {}\n", addr, e.text));
+            if let Err(e) = write_grouped_number(w, e.address as u128, cfg, cfg.addr_groups, cfg.addr_group_width) {
+                res = Err(e);
+            }
+            if let Err(e) = w.write_char(' ') {
+                res = Err(e);
+            }
+            if let Err(e) = w.write_str(&e.text) {
+                res = Err(e);
+            }
+            if let Err(e) = w.write_char('\n') {
+                res = Err(e);
+            }
             // place bytes into raw at the corresponding offset; grow vector if needed
             let offset = e.address as usize;
             if raw.len() < offset {
@@ -151,8 +129,20 @@ pub fn print_detached_listing(entries: &[ListingEntry], cfg: ListingConfig) -> (
             }
             raw.extend_from_slice(&e.bytes);
         } else {
-            comments.push_str(&alloc::format!("{}\n", e.text));
+            if let Err(e) = w.write_str(&e.text) {
+                res = Err(e);
+            }
+            if let Err(e) = w.write_char('\n') {
+                res = Err(e);
+            }
         }
     }
+    (res, raw)
+}
+
+/// Print detached listing comments and return raw bytes file contents separately.
+pub fn print_detached_listing(entries: &[ListingEntry], cfg: ListingConfig) -> (String, Vec<u8>) {
+    let mut comments = String::new();
+    let (_, raw) = write_detached_listing(&mut comments, entries, cfg);
     (comments, raw)
 }

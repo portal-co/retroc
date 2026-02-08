@@ -1,5 +1,8 @@
 use alloc::{string::String, vec::Vec};
-use core::fmt::{self, Display};
+use core::fmt::{self, Display, Write};
+use nom::character::complete::{char as nom_char, hex_digit1, take_while1};
+use nom::multi::separated_list1;
+use nom::{IResult, Parser};
 
 /// Configuration for formatting/parsing listings.
 #[derive(Clone, Copy, Debug)]
@@ -57,6 +60,45 @@ impl ListingConfig {
     }
 }
 
+/// A nom-style parser for dotted groups into a numeric value.
+pub fn parse_dotted_groups<'a>(
+    i: &'a str,
+    base: u8,
+    expected_groups: usize,
+) -> IResult<&'a str, u128> {
+    let (i, groups) = if base == 16 {
+        separated_list1(nom_char('.'), hex_digit1).parse(i)?
+    } else if base == 8 {
+        separated_list1(nom_char('.'), take_while1(|c: char| c >= '0' && c <= '7')).parse(i)?
+    } else {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            i,
+            nom::error::ErrorKind::Tag,
+        )));
+    };
+
+    if groups.len() != expected_groups {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            i,
+            nom::error::ErrorKind::Verify,
+        )));
+    }
+
+    let mut value: u128 = 0;
+    for part in groups {
+        let part_val = u128::from_str_radix(part, base as u32).map_err(|_| {
+            nom::Err::Error(nom::error::Error::new(part, nom::error::ErrorKind::Digit))
+        })?;
+        let bits = match base {
+            16 => 4 * part.len(),
+            8 => 3 * part.len(),
+            _ => 4 * part.len(),
+        };
+        value = (value << bits) | part_val;
+    }
+    Ok((i, value))
+}
+
 /// A single listing entry: address, raw bytes and text (mnemonic/comment)
 #[derive(Clone, Debug)]
 pub struct ListingEntry {
@@ -98,25 +140,24 @@ pub fn parse_grouped_number(
     Ok(value)
 }
 
-/// Format a numeric value into dotted groups with zero padding.
-pub fn format_grouped_number(
+/// Format a numeric value into dotted groups using the provided formatter.
+pub fn write_grouped_number<W: Write>(
+    w: &mut W,
     mut value: u128,
     cfg: ListingConfig,
     groups: usize,
     group_width: usize,
-) -> String {
-    // We'll extract groups from least-significant to most.
+) -> fmt::Result {
     let base = cfg.base as u128;
     let mut parts: Vec<String> = Vec::new();
     for _ in 0..groups {
-        // mask for one group: base^width - 1
         let mask = base.pow(group_width as u32) - 1;
         let part = (value & mask) as u128;
-        let s = if cfg.base == 16 {
-            // hex with lowercase
-            alloc::format!("{:0width$x}", part, width = group_width)
+        let mut s = String::new();
+        if cfg.base == 16 {
+            write!(s, "{:0width$x}", part, width = group_width).unwrap();
         } else {
-            alloc::format!("{:0width$o}", part, width = group_width)
+            write!(s, "{:0width$o}", part, width = group_width).unwrap();
         };
         parts.push(s);
         value >>= match cfg.base {
@@ -126,7 +167,25 @@ pub fn format_grouped_number(
         };
     }
     parts.reverse();
-    parts.join(".")
+    for (i, p) in parts.iter().enumerate() {
+        if i > 0 {
+            w.write_char('.')?;
+        }
+        w.write_str(p)?;
+    }
+    Ok(())
+}
+
+/// Format a numeric value into dotted groups with zero padding.
+pub fn format_grouped_number(
+    value: u128,
+    cfg: ListingConfig,
+    groups: usize,
+    group_width: usize,
+) -> String {
+    let mut s = String::new();
+    write_grouped_number(&mut s, value, cfg, groups, group_width).unwrap();
+    s
 }
 
 /// Convert a grouped numeric value into bytes (big-endian) where each group contributes group_bits bits.
