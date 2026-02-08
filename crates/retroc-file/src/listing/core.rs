@@ -1,6 +1,7 @@
 use alloc::{string::String, vec::Vec};
+use nom::bytes::take_while1;
 use core::fmt::{self, Display, Write};
-use nom::character::complete::{char as nom_char, hex_digit1, take_while1};
+use nom::character::complete::{char as nom_char, hex_digit1};
 use nom::multi::separated_list1;
 use nom::{IResult, Parser};
 
