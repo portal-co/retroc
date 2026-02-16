@@ -54,6 +54,23 @@ impl<V> State<V> {
             }
         }
     }
+    fn get_into_a(&mut self, this: V)
+    where
+        V: Clone + core::cmp::Ord,
+    {
+        if let Some((or, oi)) = self.regmap.get(&this) {
+            if self.sets_at(*oi, Reg::A) {
+                self.add_patch(*oi, Reg::A, *or);
+            } else {
+                self.insts.push(Inst::Transfer {
+                    from: *or,
+                    to: Reg::A,
+                });
+                self.regmap
+                    .insert(this.clone(), (Reg::A, self.insts.len() as u32 - 1));
+            }
+        }
+    }
     pub fn on(&self, this: V, op: Op<V>) -> BTreeSet<State<V>>
     where
         V: Clone + core::cmp::Ord,
