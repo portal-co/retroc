@@ -100,12 +100,38 @@ pub fn parse_dotted_groups<'a,Err: nom::error::ParseError<&'a str>>(
     Ok((i, value))
 }
 
-/// A single listing entry: address, raw bytes and text (mnemonic/comment)
+/// A single listing entry: address, raw bytes, and a text field that encodes
+/// the mnemonic and comment in the format described by the [`annotation`]
+/// module.
+///
+/// # Text field format
+///
+/// ```text
+/// text = [ mnemonic ] [ ";" comment ]
+/// ```
+///
+/// Use [`ListingEntry::annotation`] to parse the text field into a structured
+/// [`LineText`] value without allocating a copy of the raw string.
+///
+/// [`annotation`]: crate::listing::annotation
+/// [`LineText`]: crate::listing::annotation::LineText
 #[derive(Clone, Debug)]
 pub struct ListingEntry {
     pub address: u64,
     pub bytes: Vec<u8>,
+    /// Raw text field.  Use [`ListingEntry::annotation`] for structured access.
     pub text: String,
+}
+
+impl ListingEntry {
+    /// Parse the `text` field into a structured [`LineText`] containing the
+    /// mnemonic, comment prose, and any embedded [`Tag`]s.
+    ///
+    /// [`LineText`]: crate::listing::annotation::LineText
+    /// [`Tag`]: crate::listing::annotation::Tag
+    pub fn annotation(&self) -> crate::listing::annotation::LineText {
+        crate::listing::annotation::parse_line_text(&self.text)
+    }
 }
 
 impl Display for ListingEntry {
