@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/hopper65","crates/retroc-file"]
+members = ["crates/target/arch/hopper65","crates/host/util/retroc-file"]
 resolver = "3"
 
 [workspace.package]
