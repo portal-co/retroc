@@ -10,5 +10,7 @@ pub enum Reg {
     A,
     X,
     Y,
+    S,
+    P,
 }
 pub mod block;

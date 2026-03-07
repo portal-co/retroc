@@ -1,5 +1,39 @@
 use super::*;
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum UnaryOp {
+    Inc,
+    Dec,
+    Asl,
+    Lsr,
+    Rol,
+    Ror,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum BinaryOp {
+    Adc,
+    Sbc,
+    And,
+    Ora,
+    Eor,
+    Cmp,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum Flag {
+    Carry,
+    Decimal,
+    Interrupt,
+    Overflow,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum StackOp {
+    Push,
+    Pop,
+}
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct State<V> {
     pub regmap: BTreeMap<V, (Reg, u32)>,
@@ -7,14 +41,50 @@ pub struct State<V> {
 }
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum Inst {
-    StoreArg { reg: Reg, fwd: u32 },
-    LoadConst { reg: Reg, value: u8 },
-    Transfer { from: Reg, to: Reg },
+    StoreArg {
+        reg: Reg,
+        fwd: u32,
+    },
+    LoadConst {
+        reg: Reg,
+        value: u8,
+    },
+    Transfer {
+        from: Reg,
+        to: Reg,
+    },
+    Unary {
+        op: UnaryOp,
+        reg: Reg,
+    },
+    Binary {
+        op: BinaryOp,
+        reg: Reg,
+        imm: u8,
+    },
+    Flag {
+        flag: Flag,
+        value: bool,
+    },
+    Stack {
+        op: StackOp,
+        reg: Reg,
+    },
 }
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum Op<V> {
     Just(V),
     Const(u8),
+    Add(V, V),
+    Sub(V, V),
+    And(V, V),
+    Ora(V, V),
+    Eor(V, V),
+    Not(V),
+    Shl(V),
+    Shr(V),
+    Rol(V),
+    Ror(V),
 }
 impl<V> State<V> {
     pub fn add_patch(&mut self, orig: u32, reg: Reg, target: Reg) {
@@ -48,6 +118,18 @@ impl<V> State<V> {
                     return true;
                 }
                 Inst::Transfer { from, to } if *to == reg && *from != reg => {
+                    return true;
+                }
+                Inst::Unary { reg: r, .. } if *r == reg => {
+                    return true;
+                }
+                Inst::Binary { reg: r, .. } if *r == reg => {
+                    return true;
+                }
+                Inst::Stack {
+                    op: StackOp::Pop,
+                    reg: r,
+                } if *r == reg => {
                     return true;
                 }
                 _ => {}
@@ -112,6 +194,7 @@ impl<V> State<V> {
                     new
                 })
                 .collect::<BTreeSet<_>>(),
+            _ => [].into_iter().collect(), // TODO: implement other ops
         }
     }
 }
